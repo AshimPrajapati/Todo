@@ -1,0 +1,242 @@
+﻿
+
+<link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<!------ Include the above in your HEAD tag ---------->
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="todolist not-done">
+                <h1>Todos</h1>
+                <input type="text" id="name" class="form-control add-todo " placeholder="Add todo">
+
+
+                <table id="listTable" class="table" style="text-align:center"></table>
+                <div class="todo-footer">
+                    <strong><span class="count-todos"></span></strong> Items Left
+                </div>
+            </div>
+        </div>
+        <div class="clearfix"></div>
+        <div id="msg" class="col-md-6"></div>
+
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        getList();
+    });
+
+    var List = {
+        id: 0,
+        name: "",
+        isCompleted: "",
+        isDeleted: ""
+    }
+
+    function getList() {
+        // Call Web API to get a list of Employees
+        $.ajax({
+            url: '/api/GetList/',
+            type: 'GET',
+            dataType: 'json',
+            success: function (toDoLists) {
+                toDoListSuccess(toDoLists);
+            },
+            error: function (request, message, error) {
+                handleException(request, message, error);
+            }
+        });
+    }
+
+    function toDoListSuccess(toDoLists) {
+        // Iterate over the collection of data
+        $("#listTable tbody").remove();
+        $.each(toDoLists, function (index, list) {
+            // Add a row to the emloyee table
+            todoListAddRow(list);
+        });
+    }
+
+    function todoListAddRow(list) {
+        
+        // First check if a <tbody> tag exists, add one if not
+        if ($("#listTable tbody").length == 0) {
+            $("#listTable").append("<tbody></tbody>");
+        }
+
+        // Append row to <table>
+        $("#listTable tbody").append(
+            listBuildTableRow(list));
+    }
+
+    // Build a <tr> for a row of table data
+    function listBuildTableRow(list) {
+
+
+        var newRow = "<tr>" +
+            "<td id=" + list.id + " onclick='listUpdate(this)'";
+        if (list.isCompleted == true) {
+            newRow = newRow + " style='text-decoration: line-through' class='complete'";
+        }
+        newRow = newRow + " width='90%'>" + list.name + "</td>" +
+            "<td class='pull-right'>" +
+       
+            " <button type='button' " +
+            "onclick='listDelete(this);'" +
+            "class='btn btn-default' " +
+            "data-id='" + list.id + "'>" +
+            "X" +
+            "</button>" +
+            "</td>" +
+            "</tr>";
+
+
+        if (list.isCompleted == true) {
+            $('#' + list.id).prop('checked', true);
+            $('#txt_' + list.id).css('text-decoration', 'line-through');
+        }
+        return newRow;
+    }
+    $("#name").keyup(function (event) {
+        if (event.keyCode === 13) {
+            var options = {};
+            options.url = "/api/AddList";
+            options.type = "POST";
+            var obj = List;
+            obj.name = $("#name").val();
+            options.data = JSON.stringify(obj);
+            options.contentType = "application/json";
+            options.dataType = "html";
+
+            options.success = function (msg) {
+                getList();
+                $("#msg").html(msg);
+                $("#name").val('');
+            },
+                options.error = function () {
+                    $("#msg").html("Error while calling the Web API!");
+                };
+            $.ajax(options);
+        }
+    });
+   
+
+    function listUpdate(item) {
+       
+        var id = item.id;
+       
+        var obj = List;
+        obj.id = id;
+        obj.name = $('#' + id).html();
+        if ($('#' + id).hasClass("complete")) {
+
+            obj.isCompleted = false;
+        }
+        else {
+            obj.isCompleted = true;
+        }
+        //$.ajax({
+        //    type: "POST",
+        //    url: "/api/UpdateList",
+        //    data: JSON.stringify(obj),
+        //    dataType: "html",
+        //    contentType: "application/json",
+        //    success: function (data) {
+        //        getList();
+        //        $("#msg").html(msg);
+
+        //    },
+
+        //    error: function (xhr, ajaxOptions, thrownError) {
+        //        $("#msg").html("Error while calling the Web API!");
+        //    }
+        //});
+        var options = {};
+        options.url = "/api/UpdateList";
+        options.type = "POST";
+        options.data = JSON.stringify(obj);
+        options.contentType = "application/json";
+        options.dataType = "html";
+
+        options.success = function (msg) {
+            getList();
+            $("#msg").html(msg);
+           
+        },
+            options.error = function () {
+                $("#msg").html("Error while calling the Web API!");
+            };
+        $.ajax(options);
+    }
+
+    function listDelete(item) {
+        var id = $(item).data("id");
+        $.ajax({
+            type: "DELETE",
+            url: "/api/DeleteList/" +id,
+            dataType: "html",
+            success: function (data) {
+                getList();
+                $("#msg").html(msg);
+
+            },
+
+            error: function (xhr, ajaxOptions, thrownError) {
+                $("#msg").html("Error while calling the Web API!");
+            }
+        });
+    }
+
+    // Handle exceptions from AJAX calls
+    function handleException(request, message, error) {
+        var msg = "";
+        msg += "Code: " + request.status + "\n";
+        msg += "Text: " + request.statusText + "\n";
+        if (request.responseJSON != null) {
+            msg += "Message" + request.responseJSON.Message + "\n";
+        }
+
+        alert(msg);
+    }</script>
+
+<style>
+    body {
+        background-color: #EEEEEE;
+    }
+
+    .todolist {
+        background-color: #FFF;
+        padding: 20px 20px 10px 20px;
+        margin-top: 30px;
+    }
+
+        .todolist h1 {
+            margin: 0;
+            padding-bottom: 20px;
+            text-align: center;
+        }
+
+    .form-control {
+        border-radius: 0;
+    }
+
+    li.ui-state-default {
+        background: #fff;
+        border: none;
+        border-bottom: 1px solid #ddd;
+    }
+
+        li.ui-state-default:last-child {
+            border-bottom: none;
+        }
+
+    .todo-footer {
+        background-color: #F4FCE8;
+        margin: 0 -20px -10px -20px;
+        padding: 10px 20px;
+    }
+</style>
